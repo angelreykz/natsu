@@ -2,9 +2,9 @@ const { getRoomData } = require("../../database/roomManager");
 
 module.exports = {
     name: "sala",
-    aliases: ["amongus"],
-    description: "Mostra a sala ativa de Among Us.",
-    category: "among",
+    aliases: ["amongus", "code"],
+    description: "Exibe a sala ativa de Among Us marcando os membros.",
+    category: "fun",
     groupOnly: true,
 
     async execute(sock, msg) {
@@ -16,50 +16,42 @@ module.exports = {
             if (!room || !room.code) {
                 return await sock.sendMessage(chatId, {
                     text: "❌ Não há nenhuma sala aberta no momento."
-                }, {
-                    quoted: msg
-                });
+                }, { quoted: msg });
             }
 
             const metadata = await sock.groupMetadata(chatId);
             const mentions = metadata.participants.map(p => p.id);
+            const totalMembers = mentions.length;
 
-            const linhas = [
-                "🎮 *SALA DE AMONG US*",
+            let textResponse = [
+                "🎮 *CÓDIGO DA SALA* 🎮",
                 "",
-                `🔑 *Código:* \`${room.code}\``,
-                `👤 *Host:* ${room.author}`,
-                `🕒 *Criada às:* ${room.time}`
+                `*${room.code.toUpperCase()}*`,
+                "",
+                `✅ Sala criada! ${totalMembers} membro(s) foi / foram notificado(s).`
             ];
 
             if (room.obs?.trim()) {
-                linhas.push("");
-                linhas.push("📝 *Observação*");
-                linhas.push(room.obs.trim());
+                textResponse.push("");
+                textResponse.push(`📝 *Obs:* ${room.obs.trim()}`);
             }
 
-            linhas.push("");
-            linhas.push("📋 O código será enviado abaixo para facilitar copiar.");
-
+            // Envia a mensagem marcando os membros em background
             await sock.sendMessage(chatId, {
-                text: linhas.join("\n"),
-                mentions
-            }, {
-                quoted: msg
-            });
+                text: textResponse.join("\n"),
+                mentions: mentions
+            }, { quoted: msg });
 
+            // Envia o código limpo separado para facilitar copiar no celular
             await sock.sendMessage(chatId, {
-                text: room.code
+                text: room.code.toUpperCase()
             });
 
         } catch (err) {
-            console.error("[SALA]", err);
-
+            console.error("[ERRO SALA]", err);
             await sock.sendMessage(chatId, {
                 text: "❌ Ocorreu um erro ao buscar a sala."
-            }, {
-                quoted: msg
-            });
+            }, { quoted: msg });
         }
     }
 };
