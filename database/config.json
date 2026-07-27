@@ -1,7 +1,9 @@
 {
   "codigoSala": "NENHUMA",
   "regiaoSala": "AMÉRICA",
-  "tagComunidade": "✓",
+  "tagComunidade": "» 𝒩𝒶𝓉𝓈𝓊 «",
   "totalSalasCriadas": 0,
-  "ultimaAtualizacao": "Nunca"
+  "ultimaAtualizacao": "Nunca",
+  "welcomeAtivo": true,
+  "welcomeMsg": "Seja bem-vindo(a) ao grupo, @user! 🎉\nLeia as regras e divirta-se!"
 }
