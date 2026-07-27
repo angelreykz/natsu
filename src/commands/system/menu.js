@@ -3,7 +3,7 @@ const config = require('../../config');
 module.exports = {
     name: "menu",
     description: "Exibe o menu de comandos do bot",
-    category: "fun",
+    category: "system",
 
     async execute(sock, msg, args) {
         const chatId = msg.key.remoteJid;
