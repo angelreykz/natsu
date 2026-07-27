@@ -5,13 +5,14 @@ module.exports = {
     aliases: ["criarsala"],
     description: "Cadastra uma nova sala de Among Us",
     category: "fun",
+    groupOnly: true,
 
     async execute(sock, msg, args) {
         const chatId = msg.key.remoteJid;
 
         if (args.length === 0) {
             return await sock.sendMessage(chatId, { 
-                text: "⚠️ Uso incorreto! Exemplo: `.addsala ABCDEF` ou `.addsala ABCDEF Sala com mods TOR`" 
+                text: "⚠️ Uso incorreto! Exemplo: `.addsala RPTBRG` ou `.addsala RPTBRG Sala com mods`" 
             }, { quoted: msg });
         }
 
@@ -24,15 +25,30 @@ module.exports = {
             }, { quoted: msg });
         }
 
-        // Pega a observação (se houver) unindo o restante dos argumentos
         const obs = args.slice(1).join(" ");
         const authorName = msg.pushName || "Jogador";
 
-        // Salva a nova sala (substituindo qualquer existente)
+        // Salva a nova sala e pega os dados antigos (se houver)
         const room = saveRoom(rawCode, authorName, obs);
 
-        await sock.sendMessage(chatId, { 
-            text: `✅ Sala **${room.code}** cadastrada com sucesso por ${room.author}!` 
-        }, { quoted: msg });
+        // Busca dados do grupo
+        const groupMetadata = await sock.groupMetadata(chatId);
+        const groupName = groupMetadata.subject;
+
+        // Formata data e hora atual no padrão BR
+        const now = new Date();
+        const formattedDate = now.toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' });
+
+        const previousCode = room.previousCode || "NENHUMA";
+
+        const textResponse = [
+            "✅ *Código da sala atualizado!*",
+            "",
+            `📋 *Grupo:* ${groupName}`,
+            `🔄 *Alteração:* ${previousCode} → *${room.code.toUpperCase()}*`,
+            `📅 *Atualizado:* ${formattedDate}`
+        ].join("\n");
+
+        await sock.sendMessage(chatId, { text: textResponse }, { quoted: msg });
     }
 };
