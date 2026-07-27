@@ -5,5 +5,6 @@
   "totalSalasCriadas": 0,
   "ultimaAtualizacao": "Nunca",
   "welcomeAtivo": true,
-  "welcomeMsg": "Seja bem-vindo(a) ao grupo, @user! 🎉\nLeia as regras e divirta-se!"
+  "welcomeMsg": "Seja bem-vindo(a) ao grupo, @user! 🎉\nLeia as regras e divirta-se!",
+  "antilinkAtivo": false
 }
