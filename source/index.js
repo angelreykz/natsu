@@ -5,18 +5,18 @@ const readline = require('readline');
 const path = require('path');
 const fs = require('fs');
 
-// Interface para leitura no terminal durante a autenticação
+// Configurações do Bot
+const config = require('./src/config');
+const { carregarComandos } = require('./src/handlers/commandHandler');
+
+// Interface de leitura do terminal
 const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
 const question = (texto) => new Promise((resolve) => rl.question(texto, resolve));
 
-// Importa o gerenciador de comandos modularizados (Handler)
-const { carregarComandos } = require('./src/handlers/commandHandler');
-
-// Inicializa a coleção de comandos
+// Carrega os comandos/menus modularizados
 const comandos = carregarComandos();
 
 async function conectarBot() {
-    // Pasta onde ficará salva a sessão do WhatsApp
     const caminhoSessao = path.join(__dirname, 'sessao_natsu');
     const { state, saveCreds } = await useMultiFileAuthState(caminhoSessao);
 
@@ -28,15 +28,15 @@ async function conectarBot() {
 
     sock.ev.on('creds.update', saveCreds);
 
-    // Método de conexão (apenas se ainda não estiver autenticado)
+    // Autenticação via Pairing Code ou QR Code
     if (!sock.authState.creds.registered) {
         console.log('\n======================================');
-        console.log('       🍥 NATSU BOT - AUTHENTICATION     ');
+        console.log(`       ${config.emojis.festa} ${config.botName.toUpperCase()} - AUTENTICAÇÃO     `);
         console.log('======================================');
         console.log('1. QR Code');
         console.log('2. Pairing Code (Código de Pareamento)');
         
-        const opcao = await question('\nEscolha o método de conexão (1 ou 2): ');
+        const opcao = await question('\nEscolha a opção (1 ou 2): ');
 
         if (opcao.trim() === '2') {
             const numero = await question('Digite seu número com DDI e DDD (Ex: 5531999999999): ');
@@ -48,7 +48,7 @@ async function conectarBot() {
         }
     }
 
-    // Eventos de Conexão
+    // Monitoramento da Conexão
     sock.ev.on('connection.update', (update) => {
         const { connection, lastDisconnect, qr } = update;
 
@@ -66,11 +66,11 @@ async function conectarBot() {
                 conectarBot();
             }
         } else if (connection === 'open') {
-            console.log('\n✅ [NATSU BOT] Conectado com sucesso ao WhatsApp!');
+            console.log(`\n✅ [${config.botName}] Conectado com sucesso ao WhatsApp!`);
         }
     });
 
-    // Escutador e Roteador de Mensagens
+    // Evento: Recebimento e Processamento de Mensagens
     sock.ev.on('messages.upsert', async ({ messages, type }) => {
         if (type !== 'notify') return;
 
@@ -80,7 +80,8 @@ async function conectarBot() {
             const remetente = msg.key.remoteJid;
             const texto = msg.message?.conversation || msg.message?.extendedTextMessage?.text || '';
 
-            if (!texto.startsWith('/')) continue; // Aceita comandos com prefixo '/'
+            // Verifica se a mensagem usa o prefixo configurado
+            if (!texto.startsWith(config.prefix)) continue;
 
             const args = texto.trim().split(/ +/);
             const nomeComando = args.shift().toLowerCase();
@@ -91,13 +92,40 @@ async function conectarBot() {
                 try {
                     await cmd.executar(sock, remetente, args, msg);
                 } catch (err) {
-                    console.error(`❌ Erro ao executar o comando ${nomeComando}:`, err);
-                    await sock.sendMessage(remetente, { text: '❌ Ocorreu um erro ao executar este comando.' }, { quoted: msg });
+                    console.error(`❌ Erro no comando ${nomeComando}:`, err);
+                    await sock.sendMessage(remetente, { text: config.mensagens.erroComando }, { quoted: msg });
                 }
+            }
+        }
+    });
+
+    // Evento: Entrada e Saída de Membros nos Grupos (Boas-vindas)
+    sock.ev.on('group-participants.update', async (update) => {
+        const { id, participants, action } = update;
+
+        // Dispara ao adicionar novos participantes
+        if (action === 'add') {
+            const configPath = path.join(__dirname, 'database/config.json');
+            if (!fs.existsSync(configPath)) return;
+
+            try {
+                const db = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
+
+                if (db.welcomeAtivo && db.welcomeMsg) {
+                    for (const num of participants) {
+                        const textoFinal = db.welcomeMsg.replace(/@user/g, `@${num.split('@')[0]}`);
+
+                        await sock.sendMessage(id, {
+                            text: textoFinal,
+                            mentions: [num]
+                        });
+                    }
+                }
+            } catch (err) {
+                console.error('❌ Erro no evento de Boas-Vindas:', err);
             }
         }
     });
 }
 
 conectarBot();
-      
